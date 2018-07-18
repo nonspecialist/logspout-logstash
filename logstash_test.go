@@ -2,7 +2,6 @@ package logstash
 
 import (
 	"encoding/json"
-	"fmt"
 	"net"
 	"os"
 	"testing"
@@ -1290,8 +1289,6 @@ func TestStreamK8SPodNames(t *testing.T) {
 
 	var dockerInfo map[string]interface{}
 	dockerInfo = data["docker"].(map[string]interface{})
-
-	fmt.Printf("data is: %v\n", data)
 
 	assert.Equal("name", dockerInfo["name"])
 	assert.Equal("ID", dockerInfo["id"])
