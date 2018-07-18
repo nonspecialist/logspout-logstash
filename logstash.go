@@ -17,13 +17,27 @@ func init() {
 	router.AdapterFactories.Register(NewLogstashAdapter, "logstash")
 }
 
+var K8S_POD_UID_LABEL = "io.kubernetes.pod.uid"
+var K8S_POD_TYPE_LABEL = "io.kubernetes.docker.type"
+var K8S_POD_PARENT_TYPE = "podsandbox"
+var K8S_POD_CONTAINER_TYPE = "container"
+var K8S_IO_PREFIX = "io.kubernetes."
+var K8S_ANNOTATION_PREFIX = "annotation.kubernetes.io/"
+
+type DockerClient interface {
+	CreateContainer(docker.CreateContainerOptions) (*docker.Container, error)
+	ListContainers(docker.ListContainersOptions) ([]docker.APIContainers, error)
+}
+
 // LogstashAdapter is an adapter that streams UDP JSON to Logstash.
 type LogstashAdapter struct {
-	conn             net.Conn
-	route            *router.Route
-	containerTags    map[string][]string
-	logstashFields   map[string]map[string]string
-	decodeJsonLogs   map[string]bool
+	conn           net.Conn
+	route          *router.Route
+	containerTags  map[string][]string
+	logstashFields map[string]map[string]string
+	decodeJsonLogs map[string]bool
+	k8sLabels      map[string]map[string]string
+	client         DockerClient
 }
 
 // NewLogstashAdapter creates a LogstashAdapter with UDP as the default transport.
@@ -34,6 +48,11 @@ func NewLogstashAdapter(route *router.Route) (router.LogAdapter, error) {
 	}
 
 	for {
+		client, err := docker.NewClientFromEnv()
+		if err != nil {
+			return nil, errors.New("cannot create docker client: " + err.Error())
+		}
+
 		conn, err := transport.Dial(route.Address, route.Options)
 
 		if err == nil {
@@ -43,6 +62,8 @@ func NewLogstashAdapter(route *router.Route) (router.LogAdapter, error) {
 				containerTags:  make(map[string][]string),
 				logstashFields: make(map[string]map[string]string),
 				decodeJsonLogs: make(map[string]bool),
+				k8sLabels:      make(map[string]map[string]string),
+				client:         client,
 			}, nil
 		}
 		if os.Getenv("RETRY_STARTUP") == "" {
@@ -105,6 +126,58 @@ func GetLogstashFields(c *docker.Container, a *LogstashAdapter) map[string]strin
 	return fields
 }
 
+func SelectContainerLabels(source map[string]string) map[string]string {
+	result := make(map[string]string)
+
+	for k, v := range source {
+		if strings.HasPrefix(k, K8S_IO_PREFIX) || strings.HasPrefix(k, K8S_ANNOTATION_PREFIX) {
+			continue
+		}
+
+		result[k] = v
+	}
+
+	return result
+}
+
+func Merge(m1, m2 map[string]string) map[string]string {
+	for i, v := range m1 {
+		if _, ok := m2[i]; !ok {
+			m2[i] = v
+		}
+	}
+	return m2
+}
+
+func GetPodLabels(c *docker.Container, current_labels map[string]string, a *LogstashAdapter) (map[string]string, error) {
+	if labels, ok := a.k8sLabels[c.ID]; ok {
+		return labels, nil
+	}
+
+	// only mutate if the pod uid label exists (it's not an error if the label doesn't exist)
+	if _, ok := c.Config.Labels[K8S_POD_UID_LABEL]; !ok {
+		return current_labels, nil
+	}
+
+	// find parent container
+	opts := docker.ListContainersOptions{
+		Filters: map[string][]string{"labels": {K8S_POD_UID_LABEL, c.Config.Labels[K8S_POD_UID_LABEL]}},
+	}
+	containers, err := a.client.ListContainers(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, ctr := range containers {
+		if ctr.Labels[K8S_POD_UID_LABEL] == c.Config.Labels[K8S_POD_UID_LABEL] && ctr.Labels[K8S_POD_TYPE_LABEL] == K8S_POD_PARENT_TYPE {
+			a.k8sLabels[c.ID] = Merge(SelectContainerLabels(ctr.Labels), current_labels)
+			return a.k8sLabels[c.ID], nil
+		}
+	}
+
+	return nil, nil
+}
+
 // Get boolean indicating whether json logs should be decoded (or added as message),
 // configured with the environment variable DECODE_JSON_LOGS
 func IsDecodeJsonLogs(c *docker.Container, a *LogstashAdapter) bool {
@@ -140,10 +213,17 @@ func (a *LogstashAdapter) Stream(logstream chan *router.Message) {
 		}
 
 		if os.Getenv("DOCKER_LABELS") != "" {
-			dockerInfo.Labels = make(map[string]string)
+			labels := make(map[string]string)
 			for label, value := range m.Container.Config.Labels {
-				dockerInfo.Labels[strings.Replace(label, ".", "_", -1)] = value
+				labels[strings.Replace(label, ".", "_", -1)] = value
 			}
+
+			labels, err := GetPodLabels(m.Container, labels, a)
+			if err != nil {
+				log.Fatal("Could not get pod labels: ", err)
+			}
+
+			dockerInfo.Labels = labels
 		}
 
 		tags := GetContainerTags(m.Container, a)

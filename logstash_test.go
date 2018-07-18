@@ -2,6 +2,7 @@ package logstash
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"os"
 	"testing"
@@ -50,6 +51,33 @@ func (m MockConn) SetWriteDeadline(t time.Time) error {
 	return nil
 }
 
+type MockClient struct {
+	containers []*docker.Container
+}
+
+func (m *MockClient) CreateContainer(opts docker.CreateContainerOptions) (*docker.Container, error) {
+	ctr := &docker.Container{
+		ID:     "ID",
+		Name:   opts.Name,
+		Config: opts.Config,
+	}
+	m.containers = append(m.containers, ctr)
+	return ctr, nil
+}
+
+func (m *MockClient) ListContainers(opts docker.ListContainersOptions) ([]docker.APIContainers, error) {
+	var containers []docker.APIContainers
+	for _, c := range m.containers {
+		x := docker.APIContainers{
+			ID:     c.ID,
+			Image:  c.Image,
+			Labels: c.Config.Labels,
+		}
+		containers = append(containers, x)
+	}
+	return containers, nil
+}
+
 func TestStreamNullData(t *testing.T) {
 	assert := assert.New(t)
 
@@ -61,6 +89,7 @@ func TestStreamNullData(t *testing.T) {
 		containerTags:  make(map[string][]string),
 		logstashFields: make(map[string]map[string]string),
 		decodeJsonLogs: make(map[string]bool),
+		k8sLabels:      make(map[string]map[string]string),
 	}
 
 	assert.NotNil(adapter)
@@ -119,6 +148,7 @@ func TestStreamNotJsonWithoutLogstashTags(t *testing.T) {
 		containerTags:  make(map[string][]string),
 		logstashFields: make(map[string]map[string]string),
 		decodeJsonLogs: make(map[string]bool),
+		k8sLabels:      make(map[string]map[string]string),
 	}
 
 	assert.NotNil(adapter)
@@ -177,6 +207,7 @@ func TestStreamNotJsonWithLogstashTags(t *testing.T) {
 		containerTags:  make(map[string][]string),
 		logstashFields: make(map[string]map[string]string),
 		decodeJsonLogs: make(map[string]bool),
+		k8sLabels:      make(map[string]map[string]string),
 	}
 
 	assert.NotNil(adapter)
@@ -235,6 +266,7 @@ func TestStreamJsonWithoutLogstashTags(t *testing.T) {
 		containerTags:  make(map[string][]string),
 		logstashFields: make(map[string]map[string]string),
 		decodeJsonLogs: make(map[string]bool),
+		k8sLabels:      make(map[string]map[string]string),
 	}
 
 	assert.NotNil(adapter)
@@ -299,6 +331,7 @@ func TestStreamJsonWithLogstashTags(t *testing.T) {
 		containerTags:  make(map[string][]string),
 		logstashFields: make(map[string]map[string]string),
 		decodeJsonLogs: make(map[string]bool),
+		k8sLabels:      make(map[string]map[string]string),
 	}
 
 	assert.NotNil(adapter)
@@ -363,6 +396,7 @@ func TestStreamNotJsonWithLogstashFields(t *testing.T) {
 		containerTags:  make(map[string][]string),
 		logstashFields: make(map[string]map[string]string),
 		decodeJsonLogs: make(map[string]bool),
+		k8sLabels:      make(map[string]map[string]string),
 	}
 
 	assert.NotNil(adapter)
@@ -423,6 +457,7 @@ func TestStreamJsonWithLogstashFields(t *testing.T) {
 		containerTags:  make(map[string][]string),
 		logstashFields: make(map[string]map[string]string),
 		decodeJsonLogs: make(map[string]bool),
+		k8sLabels:      make(map[string]map[string]string),
 	}
 
 	assert.NotNil(adapter)
@@ -491,6 +526,7 @@ func TestStreamNotJsonWithLogstashFieldsWithDefault(t *testing.T) {
 		containerTags:  make(map[string][]string),
 		logstashFields: make(map[string]map[string]string),
 		decodeJsonLogs: make(map[string]bool),
+		k8sLabels:      make(map[string]map[string]string),
 	}
 
 	assert.NotNil(adapter)
@@ -553,6 +589,7 @@ func TestStreamJsonWithLogstashFieldsWithDefault(t *testing.T) {
 		containerTags:  make(map[string][]string),
 		logstashFields: make(map[string]map[string]string),
 		decodeJsonLogs: make(map[string]bool),
+		k8sLabels:      make(map[string]map[string]string),
 	}
 
 	assert.NotNil(adapter)
@@ -621,6 +658,7 @@ func TestStreamNotJsonWithLogstashTagsWithDefault(t *testing.T) {
 		containerTags:  make(map[string][]string),
 		logstashFields: make(map[string]map[string]string),
 		decodeJsonLogs: make(map[string]bool),
+		k8sLabels:      make(map[string]map[string]string),
 	}
 
 	assert.NotNil(adapter)
@@ -681,6 +719,7 @@ func TestStreamJsonWithLogstashTagsWithDefault(t *testing.T) {
 		containerTags:  make(map[string][]string),
 		logstashFields: make(map[string]map[string]string),
 		decodeJsonLogs: make(map[string]bool),
+		k8sLabels:      make(map[string]map[string]string),
 	}
 
 	assert.NotNil(adapter)
@@ -745,6 +784,7 @@ func TestStreamJsonWithLogstashFieldsAndBlacklist(t *testing.T) {
 		containerTags:  make(map[string][]string),
 		logstashFields: make(map[string]map[string]string),
 		decodeJsonLogs: make(map[string]bool),
+		k8sLabels:      make(map[string]map[string]string),
 	}
 
 	assert.NotNil(adapter)
@@ -814,6 +854,7 @@ func TestStreamJsonWithLogstashFieldsWithDefaultAndBlacklist(t *testing.T) {
 		containerTags:  make(map[string][]string),
 		logstashFields: make(map[string]map[string]string),
 		decodeJsonLogs: make(map[string]bool),
+		k8sLabels:      make(map[string]map[string]string),
 	}
 
 	assert.NotNil(adapter)
@@ -884,6 +925,7 @@ func TestStreamJsonLabelsDisabled(t *testing.T) {
 		containerTags:  make(map[string][]string),
 		logstashFields: make(map[string]map[string]string),
 		decodeJsonLogs: make(map[string]bool),
+		k8sLabels:      make(map[string]map[string]string),
 	}
 
 	assert.NotNil(adapter)
@@ -954,6 +996,7 @@ func TestStreamJsonLabelsEnabled(t *testing.T) {
 		containerTags:  make(map[string][]string),
 		logstashFields: make(map[string]map[string]string),
 		decodeJsonLogs: make(map[string]bool),
+		k8sLabels:      make(map[string]map[string]string),
 	}
 
 	assert.NotNil(adapter)
@@ -1031,6 +1074,7 @@ func TestStreamJsonLabelsEnabledButEmpty(t *testing.T) {
 		containerTags:  make(map[string][]string),
 		logstashFields: make(map[string]map[string]string),
 		decodeJsonLogs: make(map[string]bool),
+		k8sLabels:      make(map[string]map[string]string),
 	}
 
 	assert.NotNil(adapter)
@@ -1102,6 +1146,7 @@ func TestStreamJsonWithDecodeJsonLogsFalse(t *testing.T) {
 		containerTags:  make(map[string][]string),
 		logstashFields: make(map[string]map[string]string),
 		decodeJsonLogs: make(map[string]bool),
+		k8sLabels:      make(map[string]map[string]string),
 	}
 
 	assert.NotNil(adapter)
@@ -1147,4 +1192,116 @@ func TestStreamJsonWithDecodeJsonLogsFalse(t *testing.T) {
 	assert.Equal("ID", dockerInfo["id"])
 	assert.Equal("image", dockerInfo["image"])
 	assert.Equal("hostname", dockerInfo["hostname"])
+}
+
+func TestStreamK8SPodNames(t *testing.T) {
+	assert := assert.New(t)
+
+	conn := MockConn{}
+	client := MockClient{}
+
+	otherContainerConfig := docker.Config{}
+	otherContainerConfig.Image = "otherImage"
+	otherContainerConfig.Hostname = "otherHostname"
+	otherContainerConfig.Env = []string{"PATH=/bin"}
+	otherContainerConfig.Labels = map[string]string{
+		"io.kubernetes.pod.uid":        "POD-UUID",
+		"io.kubernetes.container.name": "potato",
+		"io.kubernetes.docker.type":    "container",
+		"original":                     "plobble-goo",
+	}
+
+	otherContainerOpts := docker.CreateContainerOptions{
+		Name:   "otherName",
+		Config: &otherContainerConfig,
+	}
+
+	podConfig := docker.Config{}
+	podConfig.Image = "pauseImage"
+	podConfig.Hostname = "podParent"
+	podConfig.Env = []string{"PATH=/bin"}
+	podConfig.Labels = map[string]string{
+		"io.kubernetes.pod.uid":        "POD-UUID",
+		"io.kubernetes.docker.type":    "podsandbox",
+		"io.kubernetes.container.name": "POD",
+		"app":    "myapp",
+		"thingy": "thangy",
+	}
+
+	parentContainerOpts := docker.CreateContainerOptions{
+		Name:   "podParent",
+		Config: &podConfig,
+	}
+
+	client.CreateContainer(otherContainerOpts)
+	client.CreateContainer(parentContainerOpts)
+
+	adapter := LogstashAdapter{
+		route:          new(router.Route),
+		conn:           conn,
+		containerTags:  make(map[string][]string),
+		logstashFields: make(map[string]map[string]string),
+		decodeJsonLogs: make(map[string]bool),
+		k8sLabels:      make(map[string]map[string]string),
+		client:         &client,
+	}
+
+	assert.NotNil(adapter)
+
+	logstream := make(chan *router.Message)
+
+	containerConfig := docker.Config{}
+	containerConfig.Image = "image"
+	containerConfig.Hostname = "hostname"
+	containerConfig.Env = []string{"PATH=/bin"}
+	containerConfig.Labels = map[string]string{
+		"io.kubernetes.pod.uid":        "POD-UUID",
+		"io.kubernetes.container.name": "eggplant",
+		"io.kubernetes.docker.type":    "container",
+		"original":                     "original",
+	}
+
+	container := docker.Container{}
+	container.Name = "name"
+	container.ID = "ID"
+	container.Config = &containerConfig
+
+	str := `foo bananas`
+
+	message := router.Message{
+		Container: &container,
+		Source:    "FOOOOO",
+		Data:      str,
+		Time:      time.Now(),
+	}
+
+	go func() {
+		logstream <- &message
+		close(logstream)
+	}()
+
+	adapter.Stream(logstream)
+
+	var data map[string]interface{}
+	err := json.Unmarshal([]byte(res), &data)
+	assert.Nil(err)
+
+	assert.Equal("foo bananas", data["message"])
+
+	var dockerInfo map[string]interface{}
+	dockerInfo = data["docker"].(map[string]interface{})
+
+	fmt.Printf("data is: %v\n", data)
+
+	assert.Equal("name", dockerInfo["name"])
+	assert.Equal("ID", dockerInfo["id"])
+	assert.Equal("image", dockerInfo["image"])
+	assert.Equal("hostname", dockerInfo["hostname"])
+
+	var labels map[string]interface{}
+	labels = dockerInfo["labels"].(map[string]interface{})
+
+	assert.Equal("myapp", labels["app"])
+	assert.Equal("POD-UUID", labels["io_kubernetes_pod_uid"])
+	assert.Equal("original", labels["original"])
 }
