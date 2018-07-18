@@ -161,7 +161,7 @@ func GetPodLabels(c *docker.Container, current_labels map[string]string, a *Logs
 
 	// find parent container
 	opts := docker.ListContainersOptions{
-		Filters: map[string][]string{"labels": {K8S_POD_UID_LABEL, c.Config.Labels[K8S_POD_UID_LABEL]}},
+		Filters: map[string][]string{"label": {K8S_POD_UID_LABEL, c.Config.Labels[K8S_POD_UID_LABEL]}},
 	}
 	containers, err := a.client.ListContainers(opts)
 	if err != nil {
