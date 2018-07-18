@@ -3,10 +3,14 @@
 
 # logspout-logstash-k8s
 
-Based off github.com/looplap/logspout-logstash and adding Kubernetes (k8s) labels from pods to each container on the way through
+Based off github.com/looplap/logspout-logstash and adding Kubernetes
+(k8s) labels from pods to each container on the way through
 
-This version automatically finds the POD container running on the same host, and adds the relevant Kubernetes labels to
-the log entries streamed to logstash. This roughly mimics the capabilities of, say, `filebeat` with the kubernetes prospector
+This version automatically finds the POD container running on the same
+host, and adds the relevant Kubernetes labels to the log entries streamed
+to logstash. This roughly mimics the capabilities of, say, `filebeat`
+with the kubernetes prospector. In the case of containers which aren't
+part of a Kubernetes pod, nothing special happens.
 
 A minimalistic adapter for github.com/gliderlabs/logspout to write to Logstash
 
@@ -16,9 +20,9 @@ Follow the instructions in https://github.com/gliderlabs/logspout/tree/master/cu
 package main
 
 import (
-  _ "github.com/looplab/logspout-logstash"
   _ "github.com/gliderlabs/logspout/transports/udp"
   _ "github.com/gliderlabs/logspout/transports/tcp"
+  _ "github.com/nonspecialist/logspout-logstash-k8s"
 )
 ```
 
