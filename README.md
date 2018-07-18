@@ -1,7 +1,12 @@
-[![GoDoc](https://godoc.org/github.com/looplab/logspout-logstash?status.svg)](https://godoc.org/github.com/looplab/logspout-logstash)
-[![Go Report Card](https://goreportcard.com/badge/looplab/logspout-logstash)](https://goreportcard.com/report/looplab/logspout-logstash)
+[![GoDoc](https://godoc.org/github.com/nonspecialist/logspout-logstash-k8s?status.svg)](https://godoc.org/github.com/nonspecialist/logspout-logstash-k8s)
+[![Go Report Card](https://goreportcard.com/badge/nonspecialist/logspout-logstash-k8s)](https://goreportcard.com/report/nonspecialist/logspout-logstash-k8s)
 
-# logspout-logstash
+# logspout-logstash-k8s
+
+Based off github.com/looplap/logspout-logstash and adding Kubernetes (k8s) labels from pods to each container on the way through
+
+This version automatically finds the POD container running on the same host, and adds the relevant Kubernetes labels to
+the log entries streamed to logstash. This roughly mimics the capabilities of, say, `filebeat` with the kubernetes prospector
 
 A minimalistic adapter for github.com/gliderlabs/logspout to write to Logstash
 
