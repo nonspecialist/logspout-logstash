@@ -155,11 +155,15 @@ func GetPodLabels(c *docker.Container, current_labels map[string]string, a *Logs
 		return labels, nil
 	}
 
+	log.Printf("Looking for labels for container %s for the first time", c.ID)
+
 	// only mutate if the pod uid label exists (it's not an error if the label doesn't exist)
 	if _, ok := c.Config.Labels[K8S_POD_UID_LABEL]; !ok {
 		log.Printf("There are no K8S labels for container %s", c.ID)
 		return current_labels, nil
 	}
+
+	log.Printf("Container %s is in a K8S pod")
 
 	// find parent container
 	opts := docker.ListContainersOptions{
@@ -169,6 +173,8 @@ func GetPodLabels(c *docker.Container, current_labels map[string]string, a *Logs
 	if err != nil {
 		return nil, err
 	}
+
+	log.Printf("Got some containers to check: %v", containers)
 
 	for _, ctr := range containers {
 		if ctr.Labels[K8S_POD_UID_LABEL] == c.Config.Labels[K8S_POD_UID_LABEL] && ctr.Labels[K8S_POD_TYPE_LABEL] == K8S_POD_PARENT_TYPE {
@@ -180,6 +186,8 @@ func GetPodLabels(c *docker.Container, current_labels map[string]string, a *Logs
 			log.Printf("Container %s is not a pod leader", ctr.ID)
 		}
 	}
+
+	log.Printf("Returning nil,nil -- could not find a container to match")
 
 	return nil, nil
 }
