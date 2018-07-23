@@ -150,6 +150,9 @@ func Merge(m1, m2 map[string]string) map[string]string {
 	for i, v := range m1 {
 		if _, ok := m2[i]; !ok {
 			m2[i] = v
+		} else {
+			j := "pod_" + i
+			m2[j] = v
 		}
 	}
 	return m2

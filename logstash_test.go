@@ -1223,8 +1223,9 @@ func TestStreamK8SPodNames(t *testing.T) {
 		"io.kubernetes.pod.uid":        "POD-UUID",
 		"io.kubernetes.docker.type":    "podsandbox",
 		"io.kubernetes.container.name": "POD",
-		"app":    "myapp",
-		"thingy": "thangy",
+		"app":     "myapp",
+		"thingy":  "thangy",
+		"release": "bibbling-trouser",
 	}
 
 	parentContainerOpts := docker.CreateContainerOptions{
@@ -1258,6 +1259,7 @@ func TestStreamK8SPodNames(t *testing.T) {
 		"io.kubernetes.container.name": "eggplant",
 		"io.kubernetes.docker.type":    "container",
 		"original":                     "original",
+		"release":                      "12345",
 	}
 
 	container := docker.Container{}
@@ -1301,4 +1303,6 @@ func TestStreamK8SPodNames(t *testing.T) {
 	assert.Equal("myapp", labels["app"])
 	assert.Equal("POD-UUID", labels["io_kubernetes_pod_uid"])
 	assert.Equal("original", labels["original"])
+	assert.Equal("12345", labels["release"])
+	assert.Equal("bibbling-trouser", labels["pod_release"])
 }
