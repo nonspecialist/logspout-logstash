@@ -6,7 +6,7 @@ cp -r /src /go/src/github.com/nonspecialist/logspout
 cd /go/src/github.com/nonspecialist/logspout
 export GOPATH=/go
 echo Building version $1
-go get
+go get -v -u
 go build -ldflags "-X main.Version=$1" -o /bin/logspout
 echo Cleanup
 apk del go git mercurial build-base
