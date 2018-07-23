@@ -2,8 +2,8 @@
 set -e
 apk add --update go git mercurial build-base ca-certificates
 mkdir -p /go/src/github.com/nonspecialist
-cp -r /src /go/src/github.com/nonspecialist/logspout-logstash-k8s
-cd /go/src/github.com/nonspecialist/logspout-logstash-k8s
+cp -r /src /go/src/github.com/nonspecialist/logspout
+cd /go/src/github.com/nonspecialist/logspout
 export GOPATH=/go
 echo Building version $1
 go get
