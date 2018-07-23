@@ -56,7 +56,7 @@ type MockClient struct {
 
 func (m *MockClient) CreateContainer(opts docker.CreateContainerOptions) (*docker.Container, error) {
 	ctr := &docker.Container{
-		ID:     "ID",
+		ID:     "deadbeef",
 		Name:   opts.Name,
 		Config: opts.Config,
 	}
