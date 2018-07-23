@@ -189,7 +189,7 @@ func GetPodLabels(c *docker.Container, current_labels map[string]string, a *Logs
 
 	log.Printf("Returning nil,nil -- could not find a container to match")
 
-	return nil, nil
+	return current_labels, nil
 }
 
 // Get boolean indicating whether json logs should be decoded (or added as message),
