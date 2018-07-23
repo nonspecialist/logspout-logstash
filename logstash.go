@@ -3,6 +3,7 @@ package logstash
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -163,11 +164,12 @@ func GetPodLabels(c *docker.Container, current_labels map[string]string, a *Logs
 		return current_labels, nil
 	}
 
-	log.Printf("Container %s is in a K8S pod")
+	log.Printf("Container %s is in a K8S pod", c.ID)
 
 	// find parent container
+	fltr := K8S_POD_UID_LABEL + "=" + c.Config.Labels[K8S_POD_UID_LABEL]
 	opts := docker.ListContainersOptions{
-		Filters: map[string][]string{"label": {K8S_POD_UID_LABEL, c.Config.Labels[K8S_POD_UID_LABEL]}},
+		Filters: map[string][]string{"label": {fltr}},
 	}
 	containers, err := a.client.ListContainers(opts)
 	if err != nil {
