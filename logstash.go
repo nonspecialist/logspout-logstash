@@ -3,7 +3,6 @@ package logstash
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -189,7 +188,7 @@ func GetPodLabels(c *docker.Container, current_labels map[string]string, a *Logs
 		}
 	}
 
-	log.Printf("Returning nil,nil -- could not find a container to match")
+	log.Printf("Returning current_labels %v -- could not find a container to match", current_labels)
 
 	return current_labels, nil
 }
