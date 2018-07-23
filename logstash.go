@@ -17,6 +17,12 @@ func init() {
 	router.AdapterFactories.Register(NewLogstashAdapter, "logstash")
 }
 
+func debug(v ...interface{}) {
+	if os.Getenv("DEBUG") != "" {
+		log.Println(v...)
+	}
+}
+
 var K8S_POD_UID_LABEL = "io.kubernetes.pod.uid"
 var K8S_POD_TYPE_LABEL = "io.kubernetes.docker.type"
 var K8S_POD_PARENT_TYPE = "podsandbox"
@@ -151,19 +157,19 @@ func Merge(m1, m2 map[string]string) map[string]string {
 
 func GetPodLabels(c *docker.Container, current_labels map[string]string, a *LogstashAdapter) (map[string]string, error) {
 	if labels, ok := a.k8sLabels[c.ID]; ok {
-		log.Printf("Got labels already for container %s", c.ID)
+		debug("Got labels already for container %s", c.ID)
 		return labels, nil
 	}
 
-	log.Printf("Looking for labels for container %s for the first time", c.ID)
+	debug("Looking for labels for container %s for the first time", c.ID)
 
 	// only mutate if the pod uid label exists (it's not an error if the label doesn't exist)
 	if _, ok := c.Config.Labels[K8S_POD_UID_LABEL]; !ok {
-		log.Printf("There are no K8S labels for container %s", c.ID)
+		debug("There are no K8S labels for container %s", c.ID)
 		return current_labels, nil
 	}
 
-	log.Printf("Container %s is in a K8S pod", c.ID)
+	debug("Container %s is in a K8S pod", c.ID)
 
 	// find parent container
 	fltr := K8S_POD_UID_LABEL + "=" + c.Config.Labels[K8S_POD_UID_LABEL]
@@ -175,20 +181,20 @@ func GetPodLabels(c *docker.Container, current_labels map[string]string, a *Logs
 		return nil, err
 	}
 
-	log.Printf("Got some containers to check: %v", containers)
+	debug("Got some containers to check: %v", containers)
 
 	for _, ctr := range containers {
 		if ctr.Labels[K8S_POD_UID_LABEL] == c.Config.Labels[K8S_POD_UID_LABEL] && ctr.Labels[K8S_POD_TYPE_LABEL] == K8S_POD_PARENT_TYPE {
-			log.Printf("Container %s is a pod leader", ctr.ID)
+			debug("Container %s is a pod leader", ctr.ID)
 			a.k8sLabels[c.ID] = Merge(SelectContainerLabels(ctr.Labels), current_labels)
-			log.Printf("Returning labels: %v\n", a.k8sLabels[c.ID])
+			debug("Returning labels: %v\n", a.k8sLabels[c.ID])
 			return a.k8sLabels[c.ID], nil
 		} else {
-			log.Printf("Container %s is not a pod leader", ctr.ID)
+			debug("Container %s is not a pod leader", ctr.ID)
 		}
 	}
 
-	log.Printf("Returning current_labels %v -- could not find a container to match", current_labels)
+	debug("Returning current_labels %v -- could not find a container to match", current_labels)
 
 	return current_labels, nil
 }
