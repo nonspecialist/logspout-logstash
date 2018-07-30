@@ -33,6 +33,7 @@ var K8S_ANNOTATION_PREFIX = "annotation.kubernetes.io/"
 type DockerClient interface {
 	CreateContainer(docker.CreateContainerOptions) (*docker.Container, error)
 	ListContainers(docker.ListContainersOptions) ([]docker.APIContainers, error)
+	Info() (*docker.DockerInfo, error)
 }
 
 // LogstashAdapter is an adapter that streams UDP JSON to Logstash.
@@ -158,6 +159,20 @@ func Merge(m1, m2 map[string]string) map[string]string {
 	return m2
 }
 
+func GetDockerLabels(a *LogstashAdapter) map[string]string {
+	info, err := a.client.Info()
+	if err != nil {
+		log.Print("Cannot get Docker info: ", err)
+		return nil
+	}
+
+	labels := map[string]string{
+		"host":           info.Name,
+		"docker_version": info.ServerVersion,
+	}
+	return labels
+}
+
 func GetPodLabels(c *docker.Container, current_labels map[string]string, a *LogstashAdapter) (map[string]string, error) {
 	if labels, ok := a.k8sLabels[c.ID]; ok {
 		debug("Got labels already for container %s", c.ID)
@@ -190,6 +205,7 @@ func GetPodLabels(c *docker.Container, current_labels map[string]string, a *Logs
 		if ctr.Labels[K8S_POD_UID_LABEL] == c.Config.Labels[K8S_POD_UID_LABEL] && ctr.Labels[K8S_POD_TYPE_LABEL] == K8S_POD_PARENT_TYPE {
 			debug("Container %s is a pod leader", ctr.ID)
 			a.k8sLabels[c.ID] = Merge(SelectContainerLabels(ctr.Labels), current_labels)
+			a.k8sLabels[c.ID] = Merge(GetDockerLabels(a), a.k8sLabels[c.ID])
 			debug("Returning labels: %v\n", a.k8sLabels[c.ID])
 			return a.k8sLabels[c.ID], nil
 		} else {

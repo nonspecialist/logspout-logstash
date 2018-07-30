@@ -77,6 +77,14 @@ func (m *MockClient) ListContainers(opts docker.ListContainersOptions) ([]docker
 	return containers, nil
 }
 
+func (m *MockClient) Info() (*docker.DockerInfo, error) {
+	result := &docker.DockerInfo{
+		Name:          "banana-potato",
+		ServerVersion: "tangerine",
+	}
+	return result, nil
+}
+
 func TestStreamNullData(t *testing.T) {
 	assert := assert.New(t)
 
@@ -1305,4 +1313,7 @@ func TestStreamK8SPodNames(t *testing.T) {
 	assert.Equal("original", labels["original"])
 	assert.Equal("12345", labels["release"])
 	assert.Equal("bibbling-trouser", labels["pod_release"])
+
+	assert.Equal("banana-potato", labels["host"])
+	assert.Equal("tangerine", labels["docker_version"])
 }
