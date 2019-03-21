@@ -121,6 +121,23 @@ and let ```RETRY_STARTUP``` deal with the situation.
 With both retry options, log lines will be lost when Logstash isn't available. Set the
 environment variables to any nonempty value to enable retrying. The default is disabled.
 
+### Workaround for broken journald log driver
+
+As per https://github.com/moby/moby/issues/38045, Docker 18.6.x and 18.9.x (and perhaps later)
+have a broken implementation of journald, where large log messages are not properly
+terminated, leading to multiple messages from the same container being concatenated into a
+single message, separated by a carriage return ("\r")
+
+If you have this particular scenario, you can set the BROKEN_JOURNALD environment variable
+to any value, to have logspout-logstash-k8s split these messages into multiple log events
+before annotating them with the relevant Docker and Kubernetes attributes and sending them
+on.
+
+However, **WARNING**, this will split _all_ messages on a carriage return, meaning that any
+container output which genuinely contains those characters will be converted into multiple
+messages. Examples might include the output from `yum install`, or other interactive commands.
+
+### Environment Variables
 
 This table shows all available configurations:
 
@@ -132,3 +149,4 @@ This table shows all available configurations:
 | RETRY_STARTUP        | any        | ""            |
 | RETRY_SEND           | any        | ""            |
 | DECODE_JSON_LOGS     | bool       | true          |
+| BROKEN_JOURNALD      | any        | ""            |
