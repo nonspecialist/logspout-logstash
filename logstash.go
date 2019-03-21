@@ -268,30 +268,31 @@ func (a *LogstashAdapter) Stream(logstream chan *router.Message) {
 
 		tags := GetContainerTags(m.Container, a)
 		fields := GetLogstashFields(m.Container, a)
+		decodeJson := IsDecodeJsonLogs(m.Container, a)
 
 		// For some Docker versions (18.6, 18.9 at least), the journald
 		// driver doesn't separate long messages properly, and you get two log
 		// events concatenated with a single carriage return
 		if os.Getenv("BROKEN_JOURNALD") != "" {
 			if strings.Index(m.Data, "\r") < 0 {
-				a.sendMessage(m.Source, m.Data, dockerInfo, tags, fields)
+				a.sendMessage(m.Source, m.Data, dockerInfo, tags, fields, decodeJson)
 			} else {
-				for m := range strings.Split(m.Data, "\r") {
-					a.sendMessage(m.Source, m, dockerInfo, tags, fields)
+				for _, msg := range strings.Split(m.Data, "\r") {
+					a.sendMessage(m.Source, msg, dockerInfo, tags, fields, decodeJson)
 				}
 			}
 		}
 	}
 }
 
-func (a *LogstashAdapter) sendMessage(source, message string, dockerInfo DockerInfo, tags []string, fields map[string]string) {
+func (a *LogstashAdapter) sendMessage(source, message string, dockerInfo DockerInfo, tags []string, fields map[string]string, decodeJson bool) {
 	var js []byte
 	var data map[string]interface{}
 	var err error
 
 	// Try to parse JSON-encoded m.Data. If it wasn't JSON, create an empty object
 	// and use the original data as the message.
-	if IsDecodeJsonLogs(m.Container, a) {
+	if decodeJson {
 		err = json.Unmarshal([]byte(message), &data)
 	}
 	if err != nil || data == nil {
@@ -311,7 +312,7 @@ func (a *LogstashAdapter) sendMessage(source, message string, dockerInfo DockerI
 	if js, err = json.Marshal(data); err != nil {
 		// Log error message and continue parsing next line, if marshalling fails
 		log.Println("logstash: could not marshal JSON:", err)
-		continue
+		return
 	}
 
 	// To work with tls and tcp transports via json_lines codec

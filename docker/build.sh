@@ -1,6 +1,5 @@
 #!/bin/sh
 set -e
-env
 apk add --update go git mercurial build-base ca-certificates
 mkdir -p /go/src/github.com/gliderlabs
 cp -r /src /go/src/github.com/gliderlabs/logspout
