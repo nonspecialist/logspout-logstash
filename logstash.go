@@ -281,6 +281,8 @@ func (a *LogstashAdapter) Stream(logstream chan *router.Message) {
 					a.sendMessage(m.Source, msg, dockerInfo, tags, fields, decodeJson)
 				}
 			}
+		} else {
+			a.sendMessage(m.Source, m.Data, dockerInfo, tags, fields, decodeJson)
 		}
 	}
 }
@@ -289,6 +291,8 @@ func (a *LogstashAdapter) sendMessage(source, message string, dockerInfo DockerI
 	var js []byte
 	var data map[string]interface{}
 	var err error
+
+	debug("Sending a message: %s", message)
 
 	// Try to parse JSON-encoded m.Data. If it wasn't JSON, create an empty object
 	// and use the original data as the message.
