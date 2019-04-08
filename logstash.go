@@ -278,7 +278,9 @@ func (a *LogstashAdapter) Stream(logstream chan *router.Message) {
 				a.sendMessage(m.Source, m.Data, dockerInfo, tags, fields, decodeJson)
 			} else {
 				for _, msg := range strings.Split(m.Data, "\r") {
-					a.sendMessage(m.Source, msg, dockerInfo, tags, fields, decodeJson)
+					if len(msg) > 0 {
+						a.sendMessage(m.Source, msg, dockerInfo, tags, fields, decodeJson)
+					}
 				}
 			}
 		} else {
